@@ -1,0 +1,355 @@
+streamlit run "C:\Users\Lenovo\Downloads\Multiple Disease Prediction System\multiple disease pred.py"
+
+
+
+
+
+
+
+import streamlit as st
+import pickle
+import pandas as pd
+import os
+import json
+from streamlit_option_menu import option_menu
+
+# ================= PAGE =================
+st.set_page_config(page_title="DiseaseSense", layout="wide")
+
+st.markdown("<h1 style='text-align:center;'>😷 DiseaseSense: 🩺 Integrated Multi-Disease Prediction Model 📊</h1>", unsafe_allow_html=True)
+
+# ================= SESSION =================
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# ================= USER SYSTEM =================
+USER_FILE = "users.json"
+
+def load_users():
+    if os.path.exists(USER_FILE):
+        with open(USER_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(USER_FILE, "w") as f:
+        json.dump(users, f)
+
+# ================= AUTH =================
+def auth_page():
+    choice = st.radio("Select Option", ["Login", "Sign Up"])
+
+    if choice == "Login":
+        user = st.text_input("Username")
+        pwd = st.text_input("Password", type="password")
+
+        if st.button("Login"):
+            users = load_users()
+            if user in users and users[user] == pwd:
+                st.session_state.logged_in = True
+                st.rerun()
+            else:
+                st.error("Invalid credentials")
+
+    else:
+        new_user = st.text_input("New Username")
+        new_pass = st.text_input("New Password", type="password")
+
+        if st.button("Sign Up"):
+            users = load_users()
+            if new_user in users:
+                st.error("User already exists")
+            else:
+                users[new_user] = new_pass
+                save_users(users)
+                st.success("Account created! Now login.")
+
+if not st.session_state.logged_in:
+    auth_page()
+    st.stop()
+
+# ================= LOGOUT =================
+def logout():
+    st.session_state.logged_in = False
+    st.rerun()
+
+# ================= LOAD MODELS =================
+BASE = r"C:\Users\Lenovo\Downloads\Multiple Disease Prediction System"
+
+diabetes_model = pickle.load(open(os.path.join(BASE, "saved models/diabetes_model.sav"), 'rb'))
+heart_model = pickle.load(open(os.path.join(BASE, "saved models/heart_disease_model.sav"), 'rb'))
+parkinsons_model = pickle.load(open(os.path.join(BASE, "saved models/parkinsons_model.sav"), 'rb'))
+
+# ================= SIDEBAR =================
+with st.sidebar:
+    selected = option_menu(
+        "Menu",
+        ["Diabetes", "Heart Disease", "Parkinsons", "Dashboard", "Assistant"],
+        icons=["activity","heart","person","bar-chart","chat"]
+    )
+    if st.button("Logout"):
+        logout()
+
+# ================= DIABETES =================
+if selected == "Diabetes":
+
+    st.header("🩸 Diabetes Prediction")
+
+    col1, col2 = st.columns([1,2])
+
+    with col1:
+        st.image(os.path.join(BASE, "diabetes.jpg"), width=250)
+
+    with col2:
+        preg = st.number_input("Pregnancies")
+        glucose = st.number_input("Glucose")
+        bp = st.number_input("Blood Pressure")
+        skin = st.number_input("Skin Thickness")
+        insulin = st.number_input("Insulin")
+        bmi = st.number_input("BMI")
+        dpf = st.number_input("DPF")
+        age = st.number_input("Age")
+
+        if st.button("Predict Diabetes"):
+            data = [preg, glucose, bp, skin, insulin, bmi, dpf, age]
+            pred = diabetes_model.predict([data])[0]
+
+            result = "Low Risk" if pred == 0 else "High Risk"
+            st.success(result)
+
+            st.session_state.history.append({"Type":"Diabetes","Result":result})
+            st.bar_chart(pd.DataFrame([data]).T)
+
+# ================= HEART =================
+elif selected == "Heart Disease":
+
+    st.header("❤️ Heart Disease Prediction")
+
+    col1, col2 = st.columns([1,2])
+
+    with col1:
+        st.image(os.path.join(BASE, "heart.jpg"), width=250)
+
+    with col2:
+        age = st.number_input("Age")
+        sex = st.number_input("Sex")
+        cp = st.number_input("Chest Pain Type")
+        trestbps = st.number_input("Resting BP")
+        chol = st.number_input("Cholesterol")
+        fbs = st.number_input("FBS")
+        restecg = st.number_input("ECG")
+        thalach = st.number_input("Max HR")
+        exang = st.number_input("Angina")
+        oldpeak = st.number_input("Oldpeak")
+        slope = st.number_input("Slope")
+        ca = st.number_input("CA")
+        thal = st.number_input("Thal")
+
+        if st.button("Predict Heart"):
+            data = [age, sex, cp, trestbps, chol, fbs, restecg,
+                    thalach, exang, oldpeak, slope, ca, thal]
+
+            pred = heart_model.predict([data])[0]
+
+            result = "Low Risk" if pred == 0 else "High Risk"
+            st.success(result)
+
+            st.session_state.history.append({"Type":"Heart","Result":result})
+            st.bar_chart(pd.DataFrame([data]).T)
+
+# ================= PARKINSONS =================
+elif selected == "Parkinsons":
+
+    st.header("🧠 Parkinson's Prediction")
+
+    col1, col2 = st.columns([1,2])
+
+    with col1:
+        st.image(os.path.join(BASE, "parkinson.jpg"), width=250)
+
+    with col2:
+        fo = st.number_input('Fo')
+        fhi = st.number_input('Fhi')
+        flo = st.number_input('Flo')
+        jitter = st.number_input('Jitter %')
+        jitter_abs = st.number_input('Jitter Abs')
+        rap = st.number_input('RAP')
+        ppq = st.number_input('PPQ')
+        ddp = st.number_input('DDP')
+        shimmer = st.number_input('Shimmer')
+        shimmer_db = st.number_input('Shimmer dB')
+        apq3 = st.number_input('APQ3')
+        apq5 = st.number_input('APQ5')
+        apq = st.number_input('APQ')
+        dda = st.number_input('DDA')
+        nhr = st.number_input('NHR')
+        hnr = st.number_input('HNR')
+        rpde = st.number_input('RPDE')
+        dfa = st.number_input('DFA')
+        spread1 = st.number_input('Spread1')
+        spread2 = st.number_input('Spread2')
+        d2 = st.number_input('D2')
+        ppe = st.number_input('PPE')
+
+        if st.button("Predict Parkinsons"):
+            data = [
+                fo,fhi,flo,jitter,jitter_abs,rap,ppq,ddp,
+                shimmer,shimmer_db,apq3,apq5,apq,dda,
+                nhr,hnr,rpde,dfa,spread1,spread2,d2,ppe
+            ]
+
+            pred = parkinsons_model.predict([data])[0]
+
+            result = "Low Risk" if pred == 0 else "High Risk"
+            st.success(result)
+
+            st.session_state.history.append({"Type":"Parkinsons","Result":result})
+            st.bar_chart(pd.DataFrame([data]).T)
+
+# ================= DASHBOARD =================
+elif selected == "Dashboard":
+    st.header("📊 History Dashboard")
+
+    if st.session_state.history:
+        df = pd.DataFrame(st.session_state.history)
+        st.dataframe(df)
+        st.bar_chart(df["Type"].value_counts())
+    else:
+        st.warning("No data yet")
+
+# ================= ASSISTANT =================
+
+# ================= ASSISTANT =================
+elif selected == "Assistant":
+
+    st.header("💬 Health Assistant")
+
+    # ================= ASK QUESTION =================
+    user_input = st.text_input("Ask a health question")
+
+    questions = {
+    # ===== DIABETES =====
+    "what is diabetes": "Diabetes is a condition where blood sugar levels are too high.",
+    "symptoms of diabetes": "Frequent urination, thirst, fatigue, blurred vision.",
+    "causes of diabetes": "Genetics, obesity, lack of exercise, poor diet.",
+    "how to prevent diabetes": "Exercise regularly, maintain weight, eat healthy.",
+    "normal sugar level": "Fasting: 70–100 mg/dL is normal.",
+    
+    # ===== HEART =====
+    "what is heart disease": "Heart disease refers to conditions affecting the heart.",
+    "symptoms of heart disease": "Chest pain, breathlessness, fatigue.",
+    "causes of heart disease": "High cholesterol, smoking, obesity, high BP.",
+    "how to prevent heart disease": "Healthy diet, exercise, avoid smoking.",
+    "normal blood pressure": "120/80 mmHg is considered normal.",
+    
+    # ===== PARKINSON =====
+    "what is parkinson": "Parkinson’s is a neurological disorder affecting movement.",
+    "symptoms of parkinson": "Tremors, stiffness, slow movement.",
+    "causes of parkinson": "Loss of dopamine-producing neurons in the brain.",
+    "can parkinson be cured": "No cure, but symptoms can be managed.",
+    
+    # ===== GENERAL HEALTH =====
+    "how to stay healthy": "Eat balanced diet, exercise daily, sleep well.",
+    "how much water to drink": "2–3 liters per day depending on body needs.",
+    "how to boost immunity": "Eat fruits, vegetables, exercise, sleep well.",
+    "what is bmi": "BMI measures body fat based on height and weight.",
+    "ideal weight": "Depends on height and BMI (18.5–24.9 is normal range).",
+    
+    # ===== LIFESTYLE =====
+    "benefits of exercise": "Improves heart health, weight control, mental health.",
+    "how much exercise daily": "At least 30 minutes daily.",
+    "importance of sleep": "Sleep helps recovery, memory, and immunity.",
+    "how to reduce stress": "Meditation, exercise, proper rest.",
+    
+    # ===== DIET =====
+    "healthy diet": "Include fruits, vegetables, protein, whole grains.",
+    "foods for diabetes": "Low sugar, high fiber foods like vegetables.",
+    "foods for heart": "Oats, nuts, fish, fruits, vegetables.",
+    "foods to avoid": "Junk food, high sugar, fried items.",
+    "what is insulin": "Insulin is a hormone that helps control blood sugar levels.",
+    "why is high sugar dangerous": "High sugar can damage organs like kidneys, eyes, and heart.",
+    "what is cholesterol": "Cholesterol is a fatty substance in blood; too much is harmful.",
+    "good cholesterol vs bad cholesterol": "HDL is good, LDL is bad cholesterol.",
+    "how to lower cholesterol": "Eat healthy, exercise, avoid fried foods.",
+
+    "what is hypertension": "Hypertension means high blood pressure.",
+    "symptoms of high bp": "Headache, dizziness, nosebleeds (sometimes no symptoms).",
+    "how to control bp": "Reduce salt, exercise, manage stress.",
+
+    "what is obesity": "Obesity is excessive body fat that increases health risks.",
+    "risks of obesity": "Heart disease, diabetes, joint problems.",
+
+    "what causes fatigue": "Lack of sleep, poor diet, stress, or illness.",
+    "how to increase energy": "Eat healthy, sleep well, stay active.",
+
+    "what is dehydration": "Dehydration is lack of enough water in the body.",
+    "signs of dehydration": "Dry mouth, dizziness, dark urine.",
+
+    "benefits of walking": "Improves heart health, weight, and mood.",
+    "best time to exercise": "Morning or evening—consistency matters more.",
+    "how to improve immunity fast": "Eat fruits, stay hydrated, sleep well.",
+
+    "how much sugar per day": "WHO recommends less than 25g added sugar per day.",
+    "how much salt per day": "Less than 5g per day is recommended.",
+    "how to maintain mental health": "Stay active, talk to people, manage stress."
+  
+    
+    }
+
+    if user_input:
+        found = False
+        for q in questions:
+            if q in user_input.lower():
+                st.success(questions[q])
+                found = True
+                break
+
+        if not found:
+            st.warning("Try asking about diabetes, heart, or health tips")
+
+    st.markdown("---")
+
+    # ================= QUICK QUESTIONS =================
+    st.subheader("⚡ Quick Questions")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("What is Diabetes?"):
+            st.success("Diabetes is a high blood sugar disease")
+
+        if st.button("Symptoms of Diabetes"):
+            st.success("Frequent urination, thirst, fatigue")
+
+        if st.button("What is Heart Disease?"):
+            st.success("Heart disease affects heart function")
+
+    with col2:
+        if st.button("What is Parkinson’s?"):
+            st.success("A neurological disorder affecting movement")
+
+        if st.button("How to stay healthy?"):
+            st.success("Exercise, eat healthy, sleep well")
+
+        if st.button("Normal Blood Pressure?"):
+            st.success("120/80 mmHg is considered normal")
+
+    st.markdown("---")
+
+    # ================= HEALTH TIPS =================
+    st.subheader("Daily Health Tips")
+
+    tips = [
+        "💧 Drink 2–3 liters of water daily",
+        "🥗 Eat fruits and vegetables regularly",
+        "🏃 Exercise at least 30 minutes daily",
+        "😴 Sleep 7–8 hours every night",
+        "🚭 Avoid smoking and alcohol",
+        "🧂 Reduce sugar and salt intake",
+        "🧘 Manage stress with meditation or yoga"
+    ]
+
+    for tip in tips:
+        st.info(tip)
